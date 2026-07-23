@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SUMAI" />
+  <meta name="theme-color" content="#0b0b13" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <title>SUMAI — 理想の賃貸物件探し</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0b13;
+      --bg-2: #12121d;
+      --glass: rgba(255,255,255,0.055);
+      --glass-2: rgba(255,255,255,0.085);
+      --glass-3: rgba(255,255,255,0.12);
+      --stroke: rgba(255,255,255,0.09);
+      --stroke-bright: rgba(255,255,255,0.18);
+      --text: #f1eff8;
+      --text-2: #a8a3bd;
+      --text-3: #6e6884;
+      --violet: #a78bfa;
+      --violet-deep: #7c3aed;
+      --emerald: #34d399;
+      --rose: #fb7185;
+      --amber: #fbbf24;
+      --sky: #7dd3fc;
+      --font-head: 'Sora', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+      --font-body: 'Inter', 'Hiragino Sans', 'Yu Gothic UI', 'Noto Sans JP', sans-serif;
+      --r-lg: 24px;
+      --r-md: 16px;
+      --r-sm: 12px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      min-height: 100dvh;
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Ambient background ── */
+    .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 40% at 15% -5%, rgba(124,58,237,0.28), transparent 60%),
+        radial-gradient(ellipse 50% 35% at 95% 10%, rgba(45,212,191,0.13), transparent 60%),
+        radial-gradient(ellipse 70% 50% at 50% 110%, rgba(124,58,237,0.12), transparent 65%),
+        var(--bg);
+    }
+    .bg::after { content:''; position:absolute; inset:0;
+      background-image: radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px);
+      background-size: 26px 26px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent 55%);
+    }
+
+    .page { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 0 16px 56px; }
+
+    /* ── Top bar ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      margin: 0 -16px; padding: 14px 16px 12px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      background: rgba(11,11,19,0.72);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.14) inset, 0 4px 20px rgba(124,58,237,0.5);
+    }
+    .brand-name { font-family: var(--font-head); font-size: 17px; font-weight: 800; letter-spacing: 0.02em; line-height: 1.1;
+      background: linear-gradient(100deg, #fff 20%, #c4b5fd 80%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .brand-sub { font-size: 10px; color: var(--text-3); margin-top: 2px; font-weight: 500; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .top-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 11px;
+      background: var(--glass); border: 1px solid var(--stroke);
+      display: flex; align-items: center; justify-content: center; font-size: 15px;
+      cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s;
+      backdrop-filter: blur(8px);
+    }
+    .icon-btn:hover { background: var(--glass-2); border-color: var(--stroke-bright); }
+
+    .updated { font-size: 10.5px; color: var(--text-3); margin: 12px 2px 0; letter-spacing: 0.02em; }
+    .updated .dot { display:inline-block; width:6px; height:6px; border-radius:50%; background: var(--emerald); margin-right:6px; vertical-align:1px;
+      box-shadow: 0 0 8px rgba(52,211,153,0.8); }
+
+    /* ── Stats ── */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0 16px; }
+    .stat {
+      background: var(--glass); border: 1px solid var(--stroke); border-radius: var(--r-md);
+      padding: 13px 6px 11px; text-align: center; position: relative; overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+    .stat::before { content:''; position:absolute; inset:0;
+      background: linear-gradient(160deg, rgba(255,255,255,0.07), transparent 45%); pointer-events:none; }
+    .stat-num { font-family: var(--font-head); font-size: 23px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+    .stat-num.violet { color: var(--violet); }
+    .stat-num.emerald { color: var(--emerald); }
+    .stat-num.amber { color: var(--amber); }
+    .stat-label { font-size: 8.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-top: 5px; }
+
+    /* ── Controls ── */
+    .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .search-box {
+      flex: 1; display: flex; align-items: center; gap: 9px;
+      background: var(--glass); border: 1px solid var(--stroke); border-radius: var(--r-md);
+      padding: 0 14px; backdrop-filter: blur(10px); transition: border-color .15s;
+    }
+    .search-box:focus-within { border-color: rgba(167,139,250,0.5); box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+    .search-box .lens { font-size: 13px; opacity: 0.6; }
+    .search-box input { flex: 1; border: none; outline: none; background: transparent; font-family: var(--font-body); font-size: 14px; padding: 12px 0; color: var(--text); }
+    .search-box input::placeholder { color: var(--text-3); }
+    .sort-wrap { position: relative; }
+    .sort-select {
+      appearance: none; -webkit-appearance: none; height: 100%;
+      background: var(--glass); border: 1px solid var(--stroke); border-radius: var(--r-md);
+      padding: 0 30px 0 13px; font-family: var(--font-body); font-size: 12px; font-weight: 600;
+      color: var(--text-2); outline: none; max-width: 150px; backdrop-filter: blur(10px); cursor: pointer;
+    }
+    .sort-wrap::after { content: '▾'; position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--text-3); pointer-events: none; }
+
+    .chip-row { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; }
+    .chip-row::-webkit-scrollbar { display: none; }
+    .chip {
+      flex-shrink: 0; padding: 7px 13px; border-radius: 100px;
+      background: var(--glass); border: 1px solid var(--stroke);
+      font-size: 12px; font-weight: 600; color: var(--text-2);
+      cursor: pointer; transition: all .15s; white-space: nowrap; user-select: none;
+    }
+    .chip:active { transform: scale(0.95); }
+    .chip.on {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; border-color: transparent;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.15) inset, 0 4px 18px rgba(124,58,237,0.45);
+    }
+    .chip .cnt { opacity: 0.6; font-size: 10px; margin-left: 4px; font-weight: 700; }
+
+    .result-label { font-size: 11px; color: var(--text-3); font-weight: 500; margin: 8px 2px 12px; letter-spacing: 0.03em; }
+
+    /* ── Cards ── */
+    .cards { display: flex; flex-direction: column; gap: 14px; }
+    .card {
+      background: linear-gradient(160deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035));
+      border: 1px solid var(--stroke); border-radius: var(--r-lg);
+      padding: 20px; position: relative; overflow: hidden;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      opacity: 0; transform: translateY(14px);
+      animation: fadeUp .45s cubic-bezier(0.22,1,0.36,1) forwards;
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: var(--stroke-bright); }
+    .card::before { content:''; position:absolute; top:0; left:8%; right:8%; height:1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent); }
+    .card:nth-child(1){animation-delay:.03s}.card:nth-child(2){animation-delay:.08s}.card:nth-child(3){animation-delay:.13s}.card:nth-child(4){animation-delay:.18s}.card:nth-child(n+5){animation-delay:.22s}
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+    .card.dimmed { opacity: 0.45 !important; }
+    .card.dimmed:hover { opacity: 0.75 !important; }
+
+    .card-top { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+    /* score ring */
+    .ring { position: relative; width: 58px; height: 58px; flex-shrink: 0; }
+    .ring svg { transform: rotate(-90deg); }
+    .ring .track { stroke: rgba(255,255,255,0.09); }
+    .ring .bar { stroke-linecap: round; transition: stroke-dashoffset .6s cubic-bezier(0.22,1,0.36,1); }
+    .ring.hi .bar { stroke: var(--emerald); filter: drop-shadow(0 0 5px rgba(52,211,153,0.55)); }
+    .ring.mid .bar { stroke: var(--amber); filter: drop-shadow(0 0 5px rgba(251,191,36,0.45)); }
+    .ring.lo .bar { stroke: #8b87a3; }
+    .ring-txt { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ring-num { font-family: var(--font-head); font-size: 17px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+    .ring-cap { font-size: 6.5px; font-weight: 700; letter-spacing: 0.14em; color: var(--text-3); margin-top: 2px; }
+
+    .card-head { flex: 1; min-width: 0; }
+    .prop-name { font-family: var(--font-head); font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.35; margin-bottom: 7px; word-break: break-word; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .pill { font-size: 10px; font-weight: 700; padding: 3.5px 10px; border-radius: 100px; letter-spacing: 0.03em; border: 1px solid transparent; }
+    .st-gray   { background: rgba(148,163,184,0.12); color: #b6c0cf; border-color: rgba(148,163,184,0.25); }
+    .st-blue   { background: rgba(125,211,252,0.1);  color: var(--sky); border-color: rgba(125,211,252,0.3); }
+    .st-yellow { background: rgba(251,191,36,0.1);   color: var(--amber); border-color: rgba(251,191,36,0.3); }
+    .st-orange { background: rgba(251,146,60,0.1);   color: #fdba74; border-color: rgba(251,146,60,0.3); }
+    .st-red    { background: rgba(251,113,133,0.1);  color: var(--rose); border-color: rgba(251,113,133,0.35); }
+    .st-muted  { background: rgba(255,255,255,0.05); color: var(--text-3); border-color: var(--stroke); }
+    .tag-pet   { background: rgba(52,211,153,0.09);  color: var(--emerald); border-color: rgba(52,211,153,0.3); }
+    .tag-tachi { background: rgba(167,139,250,0.1);  color: var(--violet); border-color: rgba(167,139,250,0.32); }
+    .tag-over  { background: rgba(251,113,133,0.09); color: var(--rose); border-color: rgba(251,113,133,0.3); }
+
+    .price-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .price-main { font-family: var(--font-head); font-size: 30px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+    .price-main.ok { background: linear-gradient(100deg, #6ee7b7, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .price-main.over { background: linear-gradient(100deg, #fda4af, #fb7185); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .price-unit { font-size: 13px; font-weight: 700; margin-left: 2px; }
+    .price-sub { font-size: 11px; color: var(--text-3); font-weight: 500; }
+
+    .meta-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .meta-chip {
+      display: flex; align-items: baseline; gap: 5px;
+      background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px; padding: 6px 11px;
+    }
+    .meta-k { font-size: 9px; font-weight: 600; color: var(--text-3); letter-spacing: 0.06em; }
+    .meta-v { font-family: var(--font-head); font-size: 12.5px; font-weight: 700; color: var(--text); }
+    .meta-v small { font-size: 9px; font-weight: 600; color: var(--text-2); margin-left: 1px; }
+
+    .memo { font-size: 12px; color: var(--text-2); line-height: 1.7; background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--r-sm); padding: 10px 13px; margin-bottom: 14px; word-break: break-word; }
+
+    /* score breakdown */
+    .sb-toggle { font-size: 11px; font-weight: 700; color: var(--violet); cursor: pointer; user-select: none; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 4px; opacity: 0.9; }
+    .sb-toggle:hover { opacity: 1; }
+    .sb-toggle .car { font-size: 8px; transition: transform .2s; }
+    .sb-toggle.open .car { transform: rotate(180deg); }
+    .sb { display: none; margin: -4px 0 14px; border: 1px solid rgba(255,255,255,0.06); border-radius: var(--r-sm); padding: 13px 14px; background: rgba(0,0,0,0.22); }
+    .sb.open { display: block; }
+    .sb-row { display: flex; align-items: center; gap: 10px; padding: 3.5px 0; }
+    .sb-name { font-size: 10.5px; color: var(--text-2); font-weight: 500; width: 90px; flex-shrink: 0; }
+    .sb-bar-wrap { flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+    .sb-bar { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+    .sb-pts { font-family: var(--font-head); font-size: 10.5px; font-weight: 700; color: var(--text); width: 34px; text-align: right; flex-shrink: 0; }
+
+    .card-actions { display: flex; gap: 9px; }
+    .act-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 12px 8px; border-radius: var(--r-sm);
+      font-family: var(--font-head); font-size: 12.5px; font-weight: 700;
+      text-decoration: none; letter-spacing: 0.01em;
+      transition: transform .12s, opacity .15s, background .15s;
+    }
+    .act-btn:active { transform: scale(0.97); }
+    .act-primary { background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.14) inset, 0 4px 20px rgba(124,58,237,0.4); }
+    .act-secondary { background: var(--glass); border: 1px solid var(--stroke-bright); color: var(--text-2); }
+    .act-secondary:hover { background: var(--glass-2); color: var(--text); }
+    .act-btn.disabled { opacity: 0.35; pointer-events: none; }
+
+    /* ── Empty / Loading ── */
+    .empty { text-align: center; padding: 64px 20px; color: var(--text-3); }
+    .empty-emoji { font-size: 42px; display: block; margin-bottom: 16px; filter: grayscale(0.3); }
+    .empty-title { font-family: var(--font-head); font-size: 15px; font-weight: 700; color: var(--text-2); margin-bottom: 7px; }
+    .empty-sub { font-size: 12px; line-height: 1.7; }
+    .skel { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%);
+      background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: var(--r-lg); }
+    @keyframes shimmer { from { background-position: 200% 0 } to { background-position: -200% 0 } }
+    .skel-card { height: 200px; margin-bottom: 14px; }
+
+    .footer { text-align: center; font-size: 10px; color: var(--text-3); padding: 40px 0 10px; letter-spacing: 0.08em; }
+    .footer a { color: var(--violet); text-decoration: none; font-weight: 700; }
+  </style>
+</head>
+<body>
+<div class="bg"></div>
+
+<div class="page">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">🏠</div>
+      <div style="min-width:0">
+        <div class="brand-name">SUMAI</div>
+        <div class="brand-sub">理想の賃貸物件探し</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <a class="icon-btn" href="https://www.notion.so/b010a9a252ed4b349490fb95eaabfa5b" target="_blank" rel="noopener" title="NotionでDBを開く">🗂️</a>
+      <a class="icon-btn" href="https://RESET3911.github.io/ST_HUB/" title="ST HUBへ">🏡</a>
+    </div>
+  </div>
+
+  <div class="updated" id="updated"></div>
+  <div class="stats" id="stats"></div>
+
+  <div class="search-row">
+    <div class="search-box">
+      <span class="lens">🔍</span>
+      <input type="search" id="q" placeholder="物件名・駅・メモで検索" />
+    </div>
+    <div class="sort-wrap">
+      <select class="sort-select" id="sort">
+        <option value="score">スコア順</option>
+        <option value="price">月額安い順</option>
+        <option value="area">広い順</option>
+        <option value="age">築浅順</option>
+        <option value="walk">駅近順</option>
+        <option value="daikanyama">代官山近い順</option>
+        <option value="new">新着順</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="chip-row" id="statusChips"></div>
+  <div class="chip-row" id="extraChips"></div>
+
+  <div class="result-label" id="resultLabel"></div>
+  <div class="cards" id="cards">
+    <div class="skel skel-card"></div>
+    <div class="skel skel-card"></div>
+  </div>
+
+  <div class="footer">さく &amp; たかはし · ST APPS · <a href="https://www.notion.so/b010a9a252ed4b349490fb95eaabfa5b" target="_blank" rel="noopener">NOTION DB →</a></div>
+</div>
+
+<script>
+const BUDGET = 26; // 万円（管理費込み予算）
+const SCORE_MAX = 115;
+const STATUS_ORDER = ['気になる','問い合わせ済','内見予定','内見済','申込中','見送り'];
+const STATUS_CLASS = { '気になる':'st-gray','問い合わせ済':'st-blue','内見予定':'st-yellow','内見済':'st-orange','申込中':'st-red','見送り':'st-muted' };
+
+let DATA = [];
+let state = { q:'', status:'all', sort:'score', pet:false, tachibana:false, budget:false, madori:null };
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (n, d=1) => n == null ? '—' : (Math.round(n * 10**d) / 10**d).toLocaleString('ja-JP');
+
+// スコア内訳（表示用に基準を再現）
+function breakdown(p) {
+  const rows = [];
+  if (p.monthlyTotalMan != null) rows.push(['家賃の余裕', Math.max(0, Math.min(20, (BUDGET - p.monthlyTotalMan) * 2)), 20]);
+  rows.push(['代官山アクセス', p.daikanyamaMin == null ? 0 : p.daikanyamaMin <= 30 ? 30 : p.daikanyamaMin <= 50 ? 15 : 0, 30]);
+  rows.push(['立花エリア', p.tachibana ? 25 : 0, 25]);
+  if (p.areaSqm != null) rows.push(['広さ', Math.min(20, p.areaSqm / 4), 20]);
+  rows.push(['駅徒歩', p.walkMin == null ? 0 : p.walkMin <= 5 ? 10 : p.walkMin <= 10 ? 5 : 0, 10]);
+  rows.push(['築年数', p.ageYears == null ? 0 : p.ageYears <= 10 ? 10 : p.ageYears <= 20 ? 5 : 0, 10]);
+  return rows;
+}
+
+function scoreTier(s) { return s >= 75 ? 'hi' : s >= 50 ? 'mid' : 'lo'; }
+
+function ring(score) {
+  const R = 25, C = 2 * Math.PI * R;
+  const frac = score == null ? 0 : Math.max(0, Math.min(1, score / SCORE_MAX));
+  return `
+  <div class="ring ${scoreTier(score ?? 0)}">
+    <svg width="58" height="58" viewBox="0 0 58 58">
+      <circle class="track" cx="29" cy="29" r="${R}" fill="none" stroke-width="4.5"/>
+      <circle class="bar" cx="29" cy="29" r="${R}" fill="none" stroke-width="4.5"
+        stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - frac)).toFixed(1)}"/>
+    </svg>
+    <div class="ring-txt"><span class="ring-num">${score != null ? Math.round(score) : '—'}</span><span class="ring-cap">SCORE</span></div>
+  </div>`;
+}
+
+function renderStats() {
+  const active = DATA.filter(p => p.status !== '見送り');
+  const inBudget = active.filter(p => p.monthlyTotalMan != null && p.monthlyTotalMan <= BUDGET).length;
+  const naiken = DATA.filter(p => p.status === '内見予定').length;
+  const best = active.length ? Math.max(...active.map(p => p.score ?? 0)) : 0;
+  $('stats').innerHTML = `
+    <div class="stat"><div class="stat-num violet">${active.length}</div><div class="stat-label">候補</div></div>
+    <div class="stat"><div class="stat-num emerald">${inBudget}</div><div class="stat-label">予算内</div></div>
+    <div class="stat"><div class="stat-num amber">${naiken}</div><div class="stat-label">内見予定</div></div>
+    <div class="stat"><div class="stat-num violet">${Math.round(best)}</div><div class="stat-label">最高スコア</div></div>`;
+}
+
+function renderChips() {
+  const counts = {};
+  DATA.forEach(p => counts[p.status] = (counts[p.status] || 0) + 1);
+  let html = `<div class="chip ${state.status==='all'?'on':''}" data-st="all">すべて<span class="cnt">${DATA.length}</span></div>`;
+  STATUS_ORDER.forEach(st => {
+    html += `<div class="chip ${state.status===st?'on':''}" data-st="${st}">${st}<span class="cnt">${counts[st]||0}</span></div>`;
+  });
+  $('statusChips').innerHTML = html;
+  $('statusChips').querySelectorAll('.chip').forEach(c => c.onclick = () => { state.status = c.dataset.st; render(); });
+
+  const madoris = ['1LDK','2K/2DK','2LDK','3LDK以上'];
+  let ex = `
+    <div class="chip ${state.budget?'on':''}" data-x="budget">💰 予算内</div>
+    <div class="chip ${state.pet?'on':''}" data-x="pet">🐾 ペット可</div>
+    <div class="chip ${state.tachibana?'on':''}" data-x="tachibana">🏡 立花エリア</div>`;
+  madoris.forEach(m => ex += `<div class="chip ${state.madori===m?'on':''}" data-m="${m}">${m}</div>`);
+  $('extraChips').innerHTML = ex;
+  $('extraChips').querySelectorAll('.chip').forEach(c => c.onclick = () => {
+    if (c.dataset.x) state[c.dataset.x] = !state[c.dataset.x];
+    else state.madori = state.madori === c.dataset.m ? null : c.dataset.m;
+    render();
+  });
+}
+
+function filtered() {
+  let list = [...DATA];
+  if (state.status !== 'all') list = list.filter(p => p.status === state.status);
+  if (state.pet) list = list.filter(p => p.pet);
+  if (state.tachibana) list = list.filter(p => p.tachibana);
+  if (state.budget) list = list.filter(p => p.monthlyTotalMan != null && p.monthlyTotalMan <= BUDGET);
+  if (state.madori) list = list.filter(p => p.madori === state.madori);
+  if (state.q) {
+    const q = state.q.toLowerCase();
+    list = list.filter(p => [p.name, p.station, p.memo, p.madori].some(v => (v||'').toLowerCase().includes(q)));
+  }
+  const cmp = {
+    score:      (a,b) => (b.score??-1) - (a.score??-1),
+    price:      (a,b) => (a.monthlyTotalMan??1e9) - (b.monthlyTotalMan??1e9),
+    area:       (a,b) => (b.areaSqm??-1) - (a.areaSqm??-1),
+    age:        (a,b) => (a.ageYears??1e9) - (b.ageYears??1e9),
+    walk:       (a,b) => (a.walkMin??1e9) - (b.walkMin??1e9),
+    daikanyama: (a,b) => (a.daikanyamaMin??1e9) - (b.daikanyamaMin??1e9),
+    new:        (a,b) => new Date(b.addedAt) - new Date(a.addedAt),
+  }[state.sort];
+  // 見送りは常に後ろへ
+  list.sort((a,b) => ((a.status==='見送り')-(b.status==='見送り')) || cmp(a,b));
+  return list;
+}
+
+function card(p) {
+  const over = p.monthlyTotalMan != null && p.monthlyTotalMan > BUDGET;
+  const bd = breakdown(p);
+  const tags = [
+    p.pet ? '<span class="pill tag-pet">🐾 ペット可</span>' : '',
+    p.tachibana ? '<span class="pill tag-tachi">🏡 立花エリア</span>' : '',
+    over ? '<span class="pill tag-over">予算オーバー</span>' : '',
+  ].join('');
+  const metas = [
+    ['間取り', esc(p.madori) || '—', ''],
+    ['面積', fmt(p.areaSqm), '㎡'],
+    ['築', fmt(p.ageYears,0), '年'],
+    ['徒歩', fmt(p.walkMin,0), '分'],
+    ['代官山', fmt(p.daikanyamaMin,0), '分'],
+  ];
+  if (p.station) metas.splice(3, 0, ['駅', esc(p.station), '']);
+  return `
+  <div class="card ${p.status==='見送り' ? 'dimmed' : ''}">
+    <div class="card-top">
+      ${ring(p.score)}
+      <div class="card-head">
+        <div class="prop-name">${esc(p.name)}</div>
+        <div class="pill-row"><span class="pill ${STATUS_CLASS[p.status] || 'st-gray'}">${esc(p.status)}</span>${tags}</div>
+      </div>
+    </div>
+    <div class="price-row">
+      <div class="price-main ${over ? 'over' : 'ok'}">${fmt(p.monthlyTotalMan)}<span class="price-unit">万円</span></div>
+      <div class="price-sub">家賃 ${fmt(p.rentMan)}万 + 管理費 ${fmt(p.kanriMan)}万 ｜ 予算 ${BUDGET}万</div>
+    </div>
+    <div class="meta-row">
+      ${metas.map(([k,v,u]) => `<div class="meta-chip"><span class="meta-k">${k}</span><span class="meta-v">${v}${u?`<small>${u}</small>`:''}</span></div>`).join('')}
+    </div>
+    ${p.memo ? `<div class="memo">${esc(p.memo)}</div>` : ''}
+    <span class="sb-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">スコア内訳 <span class="car">▼</span></span>
+    <div class="sb">
+      ${bd.map(([name, pts, max]) => `
+        <div class="sb-row">
+          <span class="sb-name">${name}</span>
+          <div class="sb-bar-wrap"><div class="sb-bar" style="width:${max ? Math.min(100, pts/max*100) : 0}%"></div></div>
+          <span class="sb-pts">${Math.round(pts*10)/10}</span>
+        </div>`).join('')}
+    </div>
+    <div class="card-actions">
+      <a class="act-btn act-primary ${p.listingUrl ? '' : 'disabled'}" href="${esc(p.listingUrl || '#')}" target="_blank" rel="noopener">物件ページ ↗</a>
+      <a class="act-btn act-secondary" href="${esc(p.notionUrl)}" target="_blank" rel="noopener">Notionで開く</a>
+    </div>
+  </div>`;
+}
+
+function render() {
+  renderStats();
+  renderChips();
+  const list = filtered();
+  $('resultLabel').textContent = `${list.length}件を表示`;
+  if (!list.length) {
+    $('cards').innerHTML = `<div class="empty"><span class="empty-emoji">🔎</span><div class="empty-title">該当する物件がありません</div><div class="empty-sub">フィルターや検索条件を変えてみてください。<br/>新しい物件はNotionのDBに追加すると毎朝8:15に自動反映されます。</div></div>`;
+    return;
+  }
+  $('cards').innerHTML = list.map(card).join('');
+}
+
+$('q').addEventListener('input', e => { state.q = e.target.value.trim(); render(); });
+$('sort').addEventListener('change', e => { state.sort = e.target.value; render(); });
+
+fetch('data.json?t=' + Date.now())
+  .then(r => r.json())
+  .then(json => {
+    DATA = json.properties || [];
+    const d = new Date(json.updatedAt);
+    $('updated').innerHTML = `<span class="dot"></span>データ更新: ${d.toLocaleString('ja-JP', { timeZone:'Asia/Tokyo', month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' })}（毎朝8:15自動更新）`;
+    render();
+  })
+  .catch(() => {
+    $('cards').innerHTML = `<div class="empty"><span class="empty-emoji">⚠️</span><div class="empty-title">データを読み込めませんでした</div><div class="empty-sub">時間をおいて再読み込みしてください。</div></div>`;
+  });
+</script>
+</body>
+</html>

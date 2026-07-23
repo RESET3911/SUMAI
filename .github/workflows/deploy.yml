@@ -1,0 +1,43 @@
+name: Fetch Notion & Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 毎朝 8:15 JST (= 23:15 UTC) — Notionの朝8時自動追加の後にサイトを更新
+    - cron: '15 23 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Fetch latest data from Notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: node scripts/fetch-notion.mjs
+        continue-on-error: true  # トークン未設定/一時エラー時はコミット済み data.json で公開
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - uses: actions/deploy-pages@v4
+        id: deployment

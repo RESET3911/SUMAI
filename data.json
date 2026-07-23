@@ -1,0 +1,27 @@
+{
+  "updatedAt": "2026-07-23T13:20:00.000Z",
+  "count": 1,
+  "properties": [
+    {
+      "id": "3a66a370-0116-81d3-9465-e0e2140dda05",
+      "name": "【サンプル】プライムメゾン両国",
+      "notionUrl": "https://app.notion.com/p/3a66a370011681d39465e0e2140dda05",
+      "listingUrl": "https://www.homes.co.jp/chintai/tokyo/sumida-city/list/",
+      "status": "気になる",
+      "madori": "1LDK",
+      "station": "両国・亀沢2丁目",
+      "walkMin": 8,
+      "daikanyamaMin": 35,
+      "rentMan": 22.4,
+      "kanriMan": 1.2,
+      "monthlyTotalMan": 23.6,
+      "areaSqm": 50.01,
+      "ageYears": 5,
+      "pet": false,
+      "tachibana": false,
+      "score": 47.3,
+      "memo": "入力例です。スコアと月額合計は自動計算されます。使い方が分かったら削除してOK。",
+      "addedAt": "2026-07-23T10:46:28.768Z"
+    }
+  ]
+}

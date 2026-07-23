@@ -32,20 +32,21 @@ function select(prop) { return prop?.type === 'select' ? (prop.select?.name ?? n
 function url(prop) { return prop?.type === 'url' ? (prop.url ?? null) : null; }
 
 // スコア基準（Notion数式のフォールバック。数式が取れない場合に使用）
-// - 家賃の余裕: (26 - 月額合計)×2点（最大20点、マイナスは0）
+// 2026-07-24改定: 広さ・築浅重視（最大125点）
+// - 家賃の余裕: (26 - 月額合計)×1点（最大10点、マイナスは0）
 // - 代官山アクセス: 30分以内→30点、50分以内→15点
 // - 立花エリア: +25点
-// - 広さ: 面積÷4点（最大20点）
+// - 広さ: (面積-50)×1点（最大30点＝80㎡で上限）
+// - 築年数: 20点−築年数（最大20点、築20年で0点）
 // - 駅徒歩: 5分以内→10点、10分以内→5点
-// - 築年数: 10年以内→10点、20年以内→5点
 function fallbackScore(p) {
   let s = 0;
-  if (p.monthlyTotalMan != null) s += Math.max(0, Math.min(20, (26 - p.monthlyTotalMan) * 2));
+  if (p.monthlyTotalMan != null) s += Math.max(0, Math.min(10, (26 - p.monthlyTotalMan) * 1));
   if (p.daikanyamaMin != null) s += p.daikanyamaMin <= 30 ? 30 : p.daikanyamaMin <= 50 ? 15 : 0;
   if (p.tachibana) s += 25;
-  if (p.areaSqm != null) s += Math.min(20, p.areaSqm / 4);
+  if (p.areaSqm != null) s += Math.max(0, Math.min(30, p.areaSqm - 50));
+  if (p.ageYears != null) s += Math.max(0, Math.min(20, 20 - p.ageYears));
   if (p.walkMin != null) s += p.walkMin <= 5 ? 10 : p.walkMin <= 10 ? 5 : 0;
-  if (p.ageYears != null) s += p.ageYears <= 10 ? 10 : p.ageYears <= 20 ? 5 : 0;
   return Math.round(s * 10) / 10;
 }
 

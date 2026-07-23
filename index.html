@@ -314,7 +314,7 @@
 
 <script>
 const BUDGET = 26; // 万円（管理費込み予算）
-const SCORE_MAX = 115;
+const SCORE_MAX = 125; // 2026-07-24改定: 広さ・築浅重視の配点
 const STATUS_ORDER = ['気になる','問い合わせ済','内見予定','内見済','申込中','見送り'];
 const STATUS_CLASS = { '気になる':'st-gray','問い合わせ済':'st-blue','内見予定':'st-yellow','内見済':'st-orange','申込中':'st-red','見送り':'st-muted' };
 
@@ -325,19 +325,19 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = (n, d=1) => n == null ? '—' : (Math.round(n * 10**d) / 10**d).toLocaleString('ja-JP');
 
-// スコア内訳（表示用に基準を再現）
+// スコア内訳（表示用に基準を再現・2026-07-24改定: 広さ×1点/50㎡超・築浅は20点−築年数）
 function breakdown(p) {
   const rows = [];
-  if (p.monthlyTotalMan != null) rows.push(['家賃の余裕', Math.max(0, Math.min(20, (BUDGET - p.monthlyTotalMan) * 2)), 20]);
+  if (p.monthlyTotalMan != null) rows.push(['家賃の余裕', Math.max(0, Math.min(10, (BUDGET - p.monthlyTotalMan) * 1)), 10]);
   rows.push(['代官山アクセス', p.daikanyamaMin == null ? 0 : p.daikanyamaMin <= 30 ? 30 : p.daikanyamaMin <= 50 ? 15 : 0, 30]);
   rows.push(['立花エリア', p.tachibana ? 25 : 0, 25]);
-  if (p.areaSqm != null) rows.push(['広さ', Math.min(20, p.areaSqm / 4), 20]);
+  if (p.areaSqm != null) rows.push(['広さ', Math.max(0, Math.min(30, p.areaSqm - 50)), 30]);
+  rows.push(['築年数', p.ageYears == null ? 0 : Math.max(0, Math.min(20, 20 - p.ageYears)), 20]);
   rows.push(['駅徒歩', p.walkMin == null ? 0 : p.walkMin <= 5 ? 10 : p.walkMin <= 10 ? 5 : 0, 10]);
-  rows.push(['築年数', p.ageYears == null ? 0 : p.ageYears <= 10 ? 10 : p.ageYears <= 20 ? 5 : 0, 10]);
   return rows;
 }
 
-function scoreTier(s) { return s >= 75 ? 'hi' : s >= 50 ? 'mid' : 'lo'; }
+function scoreTier(s) { return s >= 70 ? 'hi' : s >= 45 ? 'mid' : 'lo'; }
 
 function ring(score) {
   const R = 25, C = 2 * Math.PI * R;

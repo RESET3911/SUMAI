@@ -233,8 +233,10 @@
     .sb-pts { font-family: var(--font-head); font-size: 10.5px; font-weight: 700; color: var(--text); width: 34px; text-align: right; flex-shrink: 0; }
 
     /* ── Rating ── */
-    .rate-row { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
-    .rate-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-3); text-transform: uppercase; }
+    .rate-box { margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .rate-row { display: flex; align-items: center; gap: 8px; }
+    .rate-who { width: 58px; flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; gap: 4px; }
+    .rate-who .me { font-size: 8px; font-weight: 800; color: var(--violet); background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.3); padding: 1px 5px; border-radius: 100px; }
     .rate-btns { display: flex; gap: 6px; flex: 1; }
     .rate-btn {
       flex: 1; padding: 9px 4px; border-radius: 11px; text-align: center;
@@ -345,12 +347,15 @@ const RATING_DEF = {
   hold: { label: '− 保留', cls: 'on-hold' },
   no:   { label: '✕ ナシ', cls: 'on-no' },
 };
-const EMAIL_TO_NAME = {
-  'kenshin39cg@gmail.com':    'けんしん',
-  'kenshincoco911@gmail.com': 'けんしん',
-  'yukiyukiyu0312@gmail.com': 'れなちゃん',
+const EMAIL_TO_USER = {
+  'kenshin39cg@gmail.com':    'kenshin',
+  'kenshincoco911@gmail.com': 'kenshin',
+  'yukiyukiyu0312@gmail.com': 'rena',
 };
-let RATINGS = {};   // notionPageId -> { rating, byName }
+const USER_NAMES = { kenshin: 'けんしん', rena: 'れな' };
+const myUser = () => FB_USER ? (EMAIL_TO_USER[FB_USER.email] || null) : null;
+const isHidden = p => { const r = RATINGS[p.id]; return r?.kenshin === 'no' || r?.rena === 'no'; }; // どちらかが✕なら非表示
+let RATINGS = {};   // notionPageId -> { kenshin: 'good'|'hold'|'no', rena: ... }
 let FB = null;      // { db, auth, fns } 初期化成功時のみ
 let FB_USER = null;
 
@@ -405,22 +410,19 @@ async function ensureLogin() {
   }
 }
 
-window.rate = async function(id, value) {
+window.rate = async function(id, who, value) {
   const user = await ensureLogin();
   if (!user) return;
-  const cur = RATINGS[id]?.rating;
+  const me = EMAIL_TO_USER[user.email];
+  if (!me) { alert('ふたり用のGoogleアカウントでログインしてください。'); return; }
+  if (me !== who) { alert(`${USER_NAMES[who]}の評価は${USER_NAMES[who]}のアカウントでログインしてね`); return; }
+  const cur = RATINGS[id]?.[who];
   try {
     const ref = FB.fs.doc(FB.db, 'sumai_ratings', id);
-    if (cur === value) {
-      await FB.fs.deleteDoc(ref); // 同じ評価をもう一度タップで解除
-    } else {
-      await FB.fs.setDoc(ref, {
-        rating: value,
-        byEmail: user.email,
-        byName: EMAIL_TO_NAME[user.email] || user.displayName || '',
-        updatedAt: Date.now(),
-      });
-    }
+    await FB.fs.setDoc(ref, {
+      [who]: cur === value ? FB.fs.deleteField() : value, // 同じ評価をもう一度タップで解除
+      updatedAt: Date.now(),
+    }, { merge: true });
   } catch (e) {
     alert('評価を保存できませんでした。ふたり用のGoogleアカウントでログインしているか確認してください。');
     console.warn(e);
@@ -487,7 +489,7 @@ function renderChips() {
     <div class="chip ${state.pet?'on':''}" data-x="pet">🐾 ペット可</div>
     <div class="chip ${state.tachibana?'on':''}" data-x="tachibana">🏡 立花エリア</div>`;
   madoris.forEach(m => ex += `<div class="chip ${state.madori===m?'on':''}" data-m="${m}">${m}</div>`);
-  const hiddenCount = DATA.filter(p => RATINGS[p.id]?.rating === 'no').length;
+  const hiddenCount = DATA.filter(isHidden).length;
   if (hiddenCount > 0 || state.showHidden) {
     ex += `<div class="chip ${state.showHidden?'on':''}" data-x="showHidden">✕ ナシも表示<span class="cnt">${hiddenCount}</span></div>`;
   }
@@ -501,7 +503,7 @@ function renderChips() {
 
 function filtered() {
   let list = [...DATA];
-  if (!state.showHidden) list = list.filter(p => RATINGS[p.id]?.rating !== 'no'); // ✕ナシは非表示
+  if (!state.showHidden) list = list.filter(p => !isHidden(p)); // どちらかが✕ナシなら非表示
   if (state.status !== 'all') list = list.filter(p => p.status === state.status);
   if (state.pet) list = list.filter(p => p.pet);
   if (state.tachibana) list = list.filter(p => p.tachibana);
@@ -558,13 +560,15 @@ function card(p) {
       ${metas.map(([k,v,u]) => `<div class="meta-chip"><span class="meta-k">${k}</span><span class="meta-v">${v}${u?`<small>${u}</small>`:''}</span></div>`).join('')}
     </div>
     ${p.memo ? `<div class="memo">${esc(p.memo)}</div>` : ''}
-    <div class="rate-row">
-      <span class="rate-label">評価</span>
-      <div class="rate-btns">
-        ${Object.entries(RATING_DEF).map(([key, def]) => `
-          <div class="rate-btn ${RATINGS[p.id]?.rating === key ? def.cls : ''}" onclick="rate('${esc(p.id)}','${key}')">${def.label}</div>`).join('')}
-      </div>
-      ${RATINGS[p.id]?.byName ? `<span class="rate-by">${esc(RATINGS[p.id].byName)}</span>` : ''}
+    <div class="rate-box">
+      ${['kenshin','rena'].map(who => `
+      <div class="rate-row">
+        <span class="rate-who">${USER_NAMES[who]}${myUser() === who ? '<span class="me">YOU</span>' : ''}</span>
+        <div class="rate-btns">
+          ${Object.entries(RATING_DEF).map(([key, def]) => `
+            <div class="rate-btn ${RATINGS[p.id]?.[who] === key ? def.cls : ''}" onclick="rate('${esc(p.id)}','${who}','${key}')">${def.label}</div>`).join('')}
+        </div>
+      </div>`).join('')}
     </div>
     <span class="sb-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">スコア内訳 <span class="car">▼</span></span>
     <div class="sb">

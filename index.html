@@ -232,6 +232,23 @@
     .sb-bar { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #7c3aed, #a78bfa); }
     .sb-pts { font-family: var(--font-head); font-size: 10.5px; font-weight: 700; color: var(--text); width: 34px; text-align: right; flex-shrink: 0; }
 
+    /* ── Rating ── */
+    .rate-row { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
+    .rate-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-3); text-transform: uppercase; }
+    .rate-btns { display: flex; gap: 6px; flex: 1; }
+    .rate-btn {
+      flex: 1; padding: 9px 4px; border-radius: 11px; text-align: center;
+      background: var(--glass); border: 1px solid var(--stroke);
+      font-size: 11.5px; font-weight: 700; color: var(--text-2);
+      cursor: pointer; user-select: none; transition: all .15s;
+    }
+    .rate-btn:active { transform: scale(0.95); }
+    .rate-btn.on-good { background: rgba(52,211,153,0.16); border-color: rgba(52,211,153,0.55); color: var(--emerald); box-shadow: 0 0 14px rgba(52,211,153,0.25); }
+    .rate-btn.on-hold { background: rgba(251,191,36,0.14); border-color: rgba(251,191,36,0.5); color: var(--amber); box-shadow: 0 0 14px rgba(251,191,36,0.2); }
+    .rate-btn.on-no   { background: rgba(251,113,133,0.13); border-color: rgba(251,113,133,0.5); color: var(--rose); box-shadow: 0 0 14px rgba(251,113,133,0.2); }
+    .rate-by { font-size: 9.5px; color: var(--text-3); flex-shrink: 0; }
+    .rate-off { opacity: 0.45; pointer-events: none; }
+
     .card-actions { display: flex; gap: 9px; }
     .act-btn {
       flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -312,14 +329,103 @@
   <div class="footer">さく &amp; たかはし · ST APPS · <a href="https://www.notion.so/b010a9a252ed4b349490fb95eaabfa5b" target="_blank" rel="noopener">NOTION DB →</a></div>
 </div>
 
-<script>
+<script type="module">
 const BUDGET = 26; // 万円（管理費込み予算）
 const SCORE_MAX = 125; // 2026-07-24改定: 広さ・築浅重視の配点
 const STATUS_ORDER = ['気になる','問い合わせ済','内見予定','内見済','申込中','見送り'];
 const STATUS_CLASS = { '気になる':'st-gray','問い合わせ済':'st-blue','内見予定':'st-yellow','内見済':'st-orange','申込中':'st-red','見送り':'st-muted' };
 
 let DATA = [];
-let state = { q:'', status:'all', sort:'score', pet:false, tachibana:false, budget:false, madori:null };
+let state = { q:'', status:'all', sort:'score', pet:false, tachibana:false, budget:false, madori:null, showHidden:false };
+
+// ── 評価（Firestore共有・3段階）──────────────────────────────
+// good=◎アリ / hold=−保留 / no=✕ナシ（✕はリストから非表示）
+const RATING_DEF = {
+  good: { label: '◎ アリ', cls: 'on-good' },
+  hold: { label: '− 保留', cls: 'on-hold' },
+  no:   { label: '✕ ナシ', cls: 'on-no' },
+};
+const EMAIL_TO_NAME = {
+  'kenshin39cg@gmail.com':    'けんしん',
+  'kenshincoco911@gmail.com': 'けんしん',
+  'yukiyukiyu0312@gmail.com': 'れなちゃん',
+};
+let RATINGS = {};   // notionPageId -> { rating, byName }
+let FB = null;      // { db, auth, fns } 初期化成功時のみ
+let FB_USER = null;
+
+async function initFirebase() {
+  try {
+    const [appM, fsM, authM] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js'),
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js'),
+    ]);
+    const app = appM.initializeApp({
+      apiKey: "AIzaSyD46e6p6Kv_gLkEDtP1YIsaj8eqh_UBtQ4",
+      authDomain: "ringi-1b31a.firebaseapp.com",
+      projectId: "ringi-1b31a",
+      storageBucket: "ringi-1b31a.firebasestorage.app",
+      messagingSenderId: "903432482546",
+      appId: "1:903432482546:web:88186598c98486e514aa6b",
+    });
+    const db = fsM.getFirestore(app);
+    const auth = authM.getAuth(app);
+    FB = { db, fs: fsM, auth, authM };
+    authM.onAuthStateChanged(auth, user => {
+      FB_USER = user;
+      if (user) subscribeRatings();
+      render();
+    });
+  } catch (e) {
+    console.warn('Firebase無効（オフライン等）: 評価機能はログイン後に利用できます', e);
+  }
+}
+
+let unsubRatings = null;
+function subscribeRatings() {
+  if (!FB || unsubRatings) return;
+  unsubRatings = FB.fs.onSnapshot(FB.fs.collection(FB.db, 'sumai_ratings'), snap => {
+    RATINGS = {};
+    snap.forEach(d => { RATINGS[d.id] = d.data(); });
+    render();
+  }, e => console.warn('ratings購読エラー', e));
+}
+
+async function ensureLogin() {
+  if (!FB) { alert('オフラインのため評価できません。通信環境で再読み込みしてください。'); return null; }
+  if (FB_USER) return FB_USER;
+  try {
+    const prov = new FB.authM.GoogleAuthProvider();
+    const res = await FB.authM.signInWithPopup(FB.auth, prov);
+    return res.user;
+  } catch (e) {
+    console.warn('ログイン中断', e);
+    return null;
+  }
+}
+
+window.rate = async function(id, value) {
+  const user = await ensureLogin();
+  if (!user) return;
+  const cur = RATINGS[id]?.rating;
+  try {
+    const ref = FB.fs.doc(FB.db, 'sumai_ratings', id);
+    if (cur === value) {
+      await FB.fs.deleteDoc(ref); // 同じ評価をもう一度タップで解除
+    } else {
+      await FB.fs.setDoc(ref, {
+        rating: value,
+        byEmail: user.email,
+        byName: EMAIL_TO_NAME[user.email] || user.displayName || '',
+        updatedAt: Date.now(),
+      });
+    }
+  } catch (e) {
+    alert('評価を保存できませんでした。ふたり用のGoogleアカウントでログインしているか確認してください。');
+    console.warn(e);
+  }
+};
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -381,6 +487,10 @@ function renderChips() {
     <div class="chip ${state.pet?'on':''}" data-x="pet">🐾 ペット可</div>
     <div class="chip ${state.tachibana?'on':''}" data-x="tachibana">🏡 立花エリア</div>`;
   madoris.forEach(m => ex += `<div class="chip ${state.madori===m?'on':''}" data-m="${m}">${m}</div>`);
+  const hiddenCount = DATA.filter(p => RATINGS[p.id]?.rating === 'no').length;
+  if (hiddenCount > 0 || state.showHidden) {
+    ex += `<div class="chip ${state.showHidden?'on':''}" data-x="showHidden">✕ ナシも表示<span class="cnt">${hiddenCount}</span></div>`;
+  }
   $('extraChips').innerHTML = ex;
   $('extraChips').querySelectorAll('.chip').forEach(c => c.onclick = () => {
     if (c.dataset.x) state[c.dataset.x] = !state[c.dataset.x];
@@ -391,6 +501,7 @@ function renderChips() {
 
 function filtered() {
   let list = [...DATA];
+  if (!state.showHidden) list = list.filter(p => RATINGS[p.id]?.rating !== 'no'); // ✕ナシは非表示
   if (state.status !== 'all') list = list.filter(p => p.status === state.status);
   if (state.pet) list = list.filter(p => p.pet);
   if (state.tachibana) list = list.filter(p => p.tachibana);
@@ -447,6 +558,14 @@ function card(p) {
       ${metas.map(([k,v,u]) => `<div class="meta-chip"><span class="meta-k">${k}</span><span class="meta-v">${v}${u?`<small>${u}</small>`:''}</span></div>`).join('')}
     </div>
     ${p.memo ? `<div class="memo">${esc(p.memo)}</div>` : ''}
+    <div class="rate-row">
+      <span class="rate-label">評価</span>
+      <div class="rate-btns">
+        ${Object.entries(RATING_DEF).map(([key, def]) => `
+          <div class="rate-btn ${RATINGS[p.id]?.rating === key ? def.cls : ''}" onclick="rate('${esc(p.id)}','${key}')">${def.label}</div>`).join('')}
+      </div>
+      ${RATINGS[p.id]?.byName ? `<span class="rate-by">${esc(RATINGS[p.id].byName)}</span>` : ''}
+    </div>
     <span class="sb-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">スコア内訳 <span class="car">▼</span></span>
     <div class="sb">
       ${bd.map(([name, pts, max]) => `
@@ -477,6 +596,8 @@ function render() {
 
 $('q').addEventListener('input', e => { state.q = e.target.value.trim(); render(); });
 $('sort').addEventListener('change', e => { state.sort = e.target.value; render(); });
+
+initFirebase(); // 評価機能（失敗してもリスト表示には影響しない）
 
 fetch('data.json?t=' + Date.now())
   .then(r => r.json())

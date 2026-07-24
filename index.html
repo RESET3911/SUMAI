@@ -354,7 +354,7 @@ const EMAIL_TO_USER = {
 };
 const USER_NAMES = { kenshin: 'けんしん', rena: 'れな' };
 const myUser = () => FB_USER ? (EMAIL_TO_USER[FB_USER.email] || null) : null;
-const isHidden = p => { const r = RATINGS[p.id]; return r?.kenshin === 'no' || r?.rena === 'no'; }; // どちらかが✕なら非表示
+const isHidden = p => { const r = RATINGS[p.id]; return r?.kenshin === 'no' && r?.rena === 'no'; }; // ふたりとも✕のときだけ非表示
 let RATINGS = {};   // notionPageId -> { kenshin: 'good'|'hold'|'no', rena: ... }
 let FB = null;      // { db, auth, fns } 初期化成功時のみ
 let FB_USER = null;

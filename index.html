@@ -251,6 +251,32 @@
     .rate-by { font-size: 9.5px; color: var(--text-3); flex-shrink: 0; }
     .rate-off { opacity: 0.45; pointer-events: none; }
 
+    /* ── Comments ── */
+    .cmt-box { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .cmt-row { display: flex; align-items: flex-start; gap: 8px; }
+    .cmt-who { width: 58px; flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--text-2); padding-top: 6px; }
+    .cmt-text {
+      flex: 1; font-size: 11.5px; line-height: 1.55; color: var(--text-2);
+      background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px; padding: 6px 10px; word-break: break-word;
+      max-height: 50px; overflow: hidden; /* 2行分 + padding */
+      position: relative;
+    }
+    .cmt-text.expanded { max-height: none; }
+    .cmt-text.mine { cursor: pointer; }
+    .cmt-text.cmt-empty { color: var(--text-3); font-style: italic; }
+    .cmt-edit-area { flex: 1; }
+    .cmt-edit-area textarea {
+      width: 100%; min-height: 58px; resize: vertical;
+      background: rgba(0,0,0,0.3); border: 1px solid rgba(167,139,250,0.4); border-radius: 10px;
+      color: var(--text); font-family: var(--font-body); font-size: 12px; line-height: 1.55;
+      padding: 8px 10px; outline: none; box-sizing: border-box;
+    }
+    .cmt-edit-btns { display: flex; gap: 6px; margin-top: 6px; }
+    .cmt-btn { padding: 7px 14px; border-radius: 9px; font-size: 11px; font-weight: 700; cursor: pointer; user-select: none; }
+    .cmt-save { background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; }
+    .cmt-cancel { background: var(--glass); border: 1px solid var(--stroke); color: var(--text-2); }
+
     .card-actions { display: flex; gap: 9px; }
     .act-btn {
       flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -409,6 +435,41 @@ async function ensureLogin() {
     return null;
   }
 }
+
+// ── コメント（けんしん・れな 各自由記入・表示2行クランプ）──
+let EDITING = null; // { id, who, draft }
+
+window.editComment = async function(id, who) {
+  const user = await ensureLogin();
+  if (!user) return;
+  const me = EMAIL_TO_USER[user.email];
+  if (!me) { alert('ふたり用のGoogleアカウントでログインしてください。'); return; }
+  if (me !== who) { alert(`${USER_NAMES[who]}のコメントは${USER_NAMES[who]}のアカウントでログインしてね`); return; }
+  EDITING = { id, who, draft: RATINGS[id]?.[who + 'Comment'] || '' };
+  render();
+  document.getElementById('cmt-edit')?.focus();
+};
+
+window.saveComment = async function() {
+  if (!EDITING || !FB) return;
+  const { id, who } = EDITING;
+  const text = (document.getElementById('cmt-edit')?.value ?? EDITING.draft).trim();
+  try {
+    await FB.fs.setDoc(FB.fs.doc(FB.db, 'sumai_ratings', id), {
+      [who + 'Comment']: text ? text : FB.fs.deleteField(),
+      updatedAt: Date.now(),
+    }, { merge: true });
+    EDITING = null;
+    render();
+  } catch (e) {
+    alert('コメントを保存できませんでした。');
+    console.warn(e);
+  }
+};
+
+window.cancelComment = function() { EDITING = null; render(); };
+window.EDITING_SYNC = function(v) { if (EDITING) EDITING.draft = v; }; // 再描画時に入力内容を保持
+window.toggleCmt = function(el) { el.classList.toggle('expanded'); };
 
 window.rate = async function(id, who, value) {
   const user = await ensureLogin();
@@ -569,6 +630,34 @@ function card(p) {
             <div class="rate-btn ${RATINGS[p.id]?.[who] === key ? def.cls : ''}" onclick="rate('${esc(p.id)}','${who}','${key}')">${def.label}</div>`).join('')}
         </div>
       </div>`).join('')}
+    </div>
+    <div class="cmt-box">
+      ${['kenshin','rena'].map(who => {
+        const cmt = RATINGS[p.id]?.[who + 'Comment'] || '';
+        const mine = myUser() === who;
+        if (EDITING && EDITING.id === p.id && EDITING.who === who) {
+          return `
+          <div class="cmt-row">
+            <span class="cmt-who">${USER_NAMES[who]}</span>
+            <div class="cmt-edit-area">
+              <textarea id="cmt-edit" oninput="if(window.EDITING_SYNC)EDITING_SYNC(this.value)" placeholder="コメントを入力…">${esc(EDITING.draft)}</textarea>
+              <div class="cmt-edit-btns">
+                <span class="cmt-btn cmt-save" onclick="saveComment()">保存</span>
+                <span class="cmt-btn cmt-cancel" onclick="cancelComment()">キャンセル</span>
+              </div>
+            </div>
+          </div>`;
+        }
+        const editable = mine || !myUser(); // 未ログイン時はタップでログインへ誘導
+        if (!cmt && !editable) return '';
+        return `
+        <div class="cmt-row">
+          <span class="cmt-who">${USER_NAMES[who]}</span>
+          <div class="cmt-text ${editable ? 'mine' : ''} ${cmt ? '' : 'cmt-empty'}"
+            onclick="${(mine || (!myUser() && !cmt)) ? `editComment('${esc(p.id)}','${who}')` : 'toggleCmt(this)'}"
+          >${cmt ? esc(cmt) : '✎ コメントを書く…'}</div>
+        </div>`;
+      }).join('')}
     </div>
     <span class="sb-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">スコア内訳 <span class="car">▼</span></span>
     <div class="sb">

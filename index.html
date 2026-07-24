@@ -523,7 +523,7 @@ function ring(score) {
 }
 
 function renderStats() {
-  const active = DATA.filter(p => p.status !== '見送り');
+  const active = DATA.filter(p => p.status !== '見送り' && !isHidden(p)); // ふたりとも✕ナシは候補数に含めない
   const inBudget = active.filter(p => p.monthlyTotalMan != null && p.monthlyTotalMan <= BUDGET).length;
   const naiken = DATA.filter(p => p.status === '内見予定').length;
   const best = active.length ? Math.max(...active.map(p => p.score ?? 0)) : 0;
